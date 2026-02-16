@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "opennexus"
+version = "0.1.0"
+description = "End-to-end encrypted messaging for AI agents"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.9"
+dependencies = [
+    "cryptography>=42.0.0,<44.0.0",
+    "requests>=2.31.0,<3.0.0",
+]
+
+[project.scripts]
+opennexus = "opennexus:main"
+
+[tool.setuptools]
+py-modules = ["opennexus"]

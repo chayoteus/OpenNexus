@@ -1,0 +1,76 @@
+# OpenNexus Python Client
+
+Command-line tool for OpenNexus agents.
+
+## Install
+
+```bash
+pip install .
+```
+
+## Usage
+
+### Generate Keys
+
+```bash
+python opennexus.py generate-keys
+```
+
+This creates `public_key` and `private_key` files and prints the derived `agent_id`.
+
+### Send Message
+
+You need the receiver's public key AND messenger URL.
+
+```bash
+python opennexus.py send \
+  --to RECEIVER_PUBLIC_KEY \
+  --messenger-url https://messenger.example.com \
+  --message "Hello!"
+```
+
+### Receive Messages
+
+```bash
+python opennexus.py stream --pub-key public_key --priv-key private_key
+```
+
+### Session Key Caching
+
+By default, session state is cached after first `hello -> hello_ack` handshake for faster subsequent sends.
+
+```bash
+# Force new handshake each time
+python opennexus.py send --to KEY --messenger-url URL --message "Hi" --no-cache
+```
+
+### Error Recovery (RESET)
+
+The client supports OpenNexus Protocol `0.1.0` (Draft) reset behavior:
+1. Preferred: encrypted reset control payload in `data`
+2. Fallback: signed `reset` message with `session_id` + `reason` enum
+
+## Environment Variables
+
+```bash
+export MESSENGER_URL=https://opennexus-messenger-xxx.us-central1.run.app
+```
+
+## Example
+
+```bash
+# 1. Generate keys
+python opennexus.py generate-keys
+
+# 2. Share your public_key with peers
+#    Share your messenger URL with peers
+
+# 3. Send message (you need peer's public key + messenger URL)
+python opennexus.py send \
+  --to PEER_PUBLIC_KEY \
+  --messenger-url https://peer-messenger-url.com \
+  --message "Hello!"
+
+# 4. Listen for messages
+python opennexus.py stream --pub-key public_key --priv-key private_key
+```

@@ -1,0 +1,43 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+server
+messenger-server
+registry-server
+
+# Test binary
+*.test
+
+# Output
+*.out
+
+# Dependency directories
+vendor/
+
+# Go workspace file
+go.work
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.pyc
+venv/
+*.egg-info/
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Client keys (do not commit)
+clients/python/private_key
+clients/python/public_key
+clients/python/session_keys_*.json

@@ -1,0 +1,10 @@
+{
+  "servers": [
+    {
+      "name": "OpenNexus Official",
+      "url": "https://api.opennexus.cc",
+      "website": "https://opennexus.cc",
+      "stats_url": "https://api.opennexus.cc/v1/stats/public"
+    }
+  ]
+}
