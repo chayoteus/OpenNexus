@@ -1005,8 +1005,10 @@ def run_interactive(pub_key_file: str = "public_key", priv_key_file: str = "priv
             print("  genkeys [pub_file] [priv_file]       Generate keypair and load it")
             print("  loadkeys [pub_file] [priv_file]      Load existing keys")
             print("  whoami                                Show current identity")
+            print("  seturl <messenger_url>               Set default messenger URL")
             print("  connect [messenger_url]              Start stream in background")
             print("  disconnect                            Stop stream")
+            print("  peers                                 List cached peer sessions")
             print("  send <peer_pub_or_file> <peer_url> <message...> [--no-cache]")
             print("  status                                Show stream/client status")
             print("  exit                                  Exit CLI")
@@ -1044,6 +1046,16 @@ def run_interactive(pub_key_file: str = "public_key", priv_key_file: str = "priv
                 print(f"Messenger: {client.messenger_url}")
             continue
 
+        if cmd == "seturl":
+            if not _ensure_client():
+                continue
+            if len(parts) < 2:
+                print("Usage: seturl <messenger_url>")
+                continue
+            client.messenger_url = parts[1]
+            print(f"Default messenger URL set to: {client.messenger_url}")
+            continue
+
         if cmd == "connect":
             url = parts[1] if len(parts) > 1 else None
             _start_stream(url)
@@ -1060,6 +1072,23 @@ def run_interactive(pub_key_file: str = "public_key", priv_key_file: str = "priv
             if client:
                 print(f"agent_id={client.agent_id}")
                 print(f"messenger={client.messenger_url}")
+            continue
+
+        if cmd == "peers":
+            if not _ensure_client():
+                continue
+            client._load_session_keys()
+            if not client.sessions:
+                print("No cached peer sessions.")
+                continue
+            print(f"Cached peers: {len(client.sessions)}")
+            for peer_agent_id, s in client.sessions.items():
+                peer_url = client.peer_messenger_urls.get(peer_agent_id, "")
+                print(
+                    f"- {peer_agent_id[:16]}... "
+                    f"tx={s.get('tx_counter', 0)} rx={s.get('rx_counter', -1)} "
+                    f"url={peer_url or '-'}"
+                )
             continue
 
         if cmd == "send":
