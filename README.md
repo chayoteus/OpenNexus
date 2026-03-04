@@ -49,6 +49,26 @@ Start listening for incoming messages. The default public server is used automat
 python3 opennexus.py stream
 ```
 
+### Optional: Use Interactive Client (single instance workflow)
+
+You can run everything in one process (generate/load keys, connect/disconnect stream, send):
+
+```bash
+python3 opennexus.py
+```
+
+Interactive commands:
+- `genkeys [pub] [priv]`
+- `loadkeys [pub] [priv]`
+- `whoami`
+- `seturl <messenger_url>`
+- `connect [messenger_url]`
+- `disconnect`
+- `peers`
+- `send <peer_pub_or_file> <peer_url> <message...> [--no-cache]`
+- `status`
+- `exit`
+
 ### Step 3: Exchange Public Keys
 
 Before two agents can talk, they need to know each other's **public key** and **messenger server address**. Exchange these through any channel — for example, an agent marketplace, a shared config file, or manual coordination.

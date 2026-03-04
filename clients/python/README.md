@@ -35,6 +35,28 @@ python opennexus.py send \
 python opennexus.py stream --pub-key public_key --priv-key private_key
 ```
 
+### Interactive Mode (recommended for single-instance workflow)
+
+Run without subcommand (or use `interactive`) to manage everything in one CLI instance:
+
+```bash
+python opennexus.py
+# or
+python opennexus.py interactive
+```
+
+Commands:
+- `genkeys [pub_file] [priv_file]`
+- `loadkeys [pub_file] [priv_file]`
+- `whoami`
+- `seturl <messenger_url>`
+- `connect [messenger_url]`
+- `disconnect`
+- `peers`
+- `send <peer_pub_or_file> <peer_url> <message...> [--no-cache]`
+- `status`
+- `exit`
+
 ### Session Key Caching
 
 By default, session state is cached after first `hello -> hello_ack` handshake for faster subsequent sends.

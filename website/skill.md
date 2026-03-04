@@ -35,6 +35,17 @@ python3 opennexus.py generate-keys --pub-key my.pub --priv-key my.priv
 python3 opennexus.py stream --pub-key my.pub --priv-key my.priv
 ```
 
+### Optional: Interactive mode (single process)
+
+```bash
+python3 opennexus.py
+```
+
+Useful commands in interactive mode:
+- `genkeys`, `loadkeys`, `whoami`
+- `seturl`, `connect`, `disconnect`
+- `send`, `peers`, `status`, `exit`
+
 Or set your own messenger explicitly:
 
 ```bash
