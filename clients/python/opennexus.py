@@ -5,6 +5,8 @@ Usage:
     python opennexus.py generate-keys
     python opennexus.py send --to <peer_public_key> --messenger-url <url> --message "Hello"
     python opennexus.py stream
+    python opennexus.py interactive
+    python opennexus.py   # defaults to interactive mode
 """
 
 import argparse
@@ -846,34 +848,24 @@ class OpenNexusClient:
         except Exception:
             return
 
-    def stream(self):
+    def stream_until_stopped(self, stop_event: threading.Event):
         print(f"Agent ID: {self.agent_id}")
         print(f"Connecting to {self.messenger_url}/v1/messages/stream...")
-        print("Press Ctrl+C to exit\n")
 
         self._load_session_keys()
 
-        stop = {"value": False}
         heartbeat_stop = threading.Event()
-
-        def _graceful_stop(signum, _frame):
-            stop["value"] = True
-            heartbeat_stop.set()
-            print(f"\nReceived signal {signum}, closing stream...")
-
-        signal.signal(signal.SIGINT, _graceful_stop)
-        signal.signal(signal.SIGTERM, _graceful_stop)
 
         def _heartbeat_loop():
             # Immediate heartbeat on start, then every 15s
-            while not heartbeat_stop.is_set():
+            while not heartbeat_stop.is_set() and not stop_event.is_set():
                 self._send_presence_heartbeat()
                 heartbeat_stop.wait(15)
 
         heartbeat_thread = threading.Thread(target=_heartbeat_loop, daemon=True)
         heartbeat_thread.start()
 
-        while not stop["value"]:
+        while not stop_event.is_set():
             response = None
             try:
                 response = requests.get(
@@ -884,7 +876,7 @@ class OpenNexusClient:
                 )
 
                 for line in response.iter_lines():
-                    if stop["value"]:
+                    if stop_event.is_set():
                         break
                     if not line:
                         continue
@@ -907,7 +899,6 @@ class OpenNexusClient:
                     msg_type = msg.get("type")
                     if msg.get("protocol_version") != PROTOCOL_VERSION:
                         print("Ignoring message with unsupported protocol_version")
-                        print("> ", end="", flush=True)
                         continue
                     sender_id = msg.get("sender_id", "")
                     print(f"[{msg_type}] From: {sender_id[:16]}...")
@@ -922,10 +913,8 @@ class OpenNexusClient:
                         self._handle_signed_reset(msg)
                     else:
                         print("Unknown message type")
-
-                    print("> ", end="", flush=True)
             except Exception as e:
-                if stop["value"]:
+                if stop_event.is_set():
                     break
                 print(f"Connection lost: {e}")
                 print("Reconnecting in 2 seconds...")
@@ -941,6 +930,19 @@ class OpenNexusClient:
         heartbeat_thread.join(timeout=1)
         print("Stream closed gracefully.")
 
+    def stream(self):
+        print("Press Ctrl+C to exit\n")
+        stop_event = threading.Event()
+
+        def _graceful_stop(signum, _frame):
+            stop_event.set()
+            print(f"\nReceived signal {signum}, closing stream...")
+
+        signal.signal(signal.SIGINT, _graceful_stop)
+        signal.signal(signal.SIGTERM, _graceful_stop)
+
+        self.stream_until_stopped(stop_event)
+
 
 def resolve_value(value):
     """If value is a file path that exists, read it; otherwise return as-is."""
@@ -948,6 +950,142 @@ def resolve_value(value):
         with open(value, "r") as f:
             return f.read().strip()
     return value
+
+
+def run_interactive(pub_key_file: str = "public_key", priv_key_file: str = "private_key"):
+    client = OpenNexusClient.load_keys(pub_key_file, priv_key_file)
+    stream_thread: Optional[threading.Thread] = None
+    stream_stop: Optional[threading.Event] = None
+
+    def _ensure_client():
+        nonlocal client
+        if client is None:
+            print("No keys loaded. Use: genkeys [pub_file] [priv_file] or loadkeys [pub_file] [priv_file]")
+            return False
+        return True
+
+    def _start_stream(url: Optional[str] = None):
+        nonlocal stream_thread, stream_stop, client
+        if not _ensure_client():
+            return
+        if stream_thread and stream_thread.is_alive():
+            print("Stream already connected.")
+            return
+        if url:
+            client.messenger_url = url
+        stream_stop = threading.Event()
+        stream_thread = threading.Thread(target=client.stream_until_stopped, args=(stream_stop,), daemon=True)
+        stream_thread.start()
+        print(f"Stream started on {client.messenger_url}")
+
+    def _stop_stream():
+        nonlocal stream_thread, stream_stop
+        if stream_stop is None or stream_thread is None or not stream_thread.is_alive():
+            print("Stream is not running.")
+            return
+        stream_stop.set()
+        stream_thread.join(timeout=3)
+        print("Stream disconnected.")
+
+    print("OpenNexus Interactive CLI")
+    print("Type 'help' for commands.")
+    while True:
+        try:
+            raw = input("opennexus> ").strip()
+        except (EOFError, KeyboardInterrupt):
+            raw = "exit"
+
+        if not raw:
+            continue
+        parts = raw.split()
+        cmd = parts[0].lower()
+
+        if cmd in {"help", "?"}:
+            print("Commands:")
+            print("  genkeys [pub_file] [priv_file]       Generate keypair and load it")
+            print("  loadkeys [pub_file] [priv_file]      Load existing keys")
+            print("  whoami                                Show current identity")
+            print("  connect [messenger_url]              Start stream in background")
+            print("  disconnect                            Stop stream")
+            print("  send <peer_pub_or_file> <peer_url> <message...> [--no-cache]")
+            print("  status                                Show stream/client status")
+            print("  exit                                  Exit CLI")
+            continue
+
+        if cmd == "genkeys":
+            pubf = parts[1] if len(parts) > 1 else pub_key_file
+            privf = parts[2] if len(parts) > 2 else priv_key_file
+            keys = OpenNexusClient.generate_keys()
+            with open(pubf, "w") as f:
+                f.write(keys["public_key"])
+            with open(privf, "w") as f:
+                f.write(keys["private_key"])
+            print(f"Generated keys -> {pubf}, {privf}")
+            client = OpenNexusClient.load_keys(pubf, privf)
+            if client:
+                print(f"AgentID: {client.agent_id}")
+            continue
+
+        if cmd == "loadkeys":
+            pubf = parts[1] if len(parts) > 1 else pub_key_file
+            privf = parts[2] if len(parts) > 2 else priv_key_file
+            loaded = OpenNexusClient.load_keys(pubf, privf)
+            if not loaded:
+                print("Failed to load keys.")
+            else:
+                client = loaded
+                print(f"Loaded keys. AgentID: {client.agent_id}")
+            continue
+
+        if cmd == "whoami":
+            if _ensure_client():
+                print(f"AgentID: {client.agent_id}")
+                print(f"Public key: {client.identity_public_key}")
+                print(f"Messenger: {client.messenger_url}")
+            continue
+
+        if cmd == "connect":
+            url = parts[1] if len(parts) > 1 else None
+            _start_stream(url)
+            continue
+
+        if cmd == "disconnect":
+            _stop_stream()
+            continue
+
+        if cmd == "status":
+            loaded = client is not None
+            running = bool(stream_thread and stream_thread.is_alive())
+            print(f"keys_loaded={loaded} stream_running={running}")
+            if client:
+                print(f"agent_id={client.agent_id}")
+                print(f"messenger={client.messenger_url}")
+            continue
+
+        if cmd == "send":
+            if not _ensure_client():
+                continue
+            if len(parts) < 4:
+                print("Usage: send <peer_pub_or_file> <peer_url> <message...> [--no-cache]")
+                continue
+            no_cache = "--no-cache" in parts
+            filtered = [p for p in parts[1:] if p != "--no-cache"]
+            if len(filtered) < 3:
+                print("Usage: send <peer_pub_or_file> <peer_url> <message...> [--no-cache]")
+                continue
+            peer = resolve_value(filtered[0])
+            peer_url = filtered[1]
+            message = " ".join(filtered[2:])
+            ok = client.send(peer, peer_url, message, cache_keys=not no_cache)
+            print("Send OK" if ok else "Send failed")
+            continue
+
+        if cmd in {"exit", "quit"}:
+            _stop_stream()
+            print("Bye")
+            return
+
+        print(f"Unknown command: {cmd}. Type 'help'.")
 
 
 def main():
@@ -976,7 +1114,19 @@ def main():
     gen_parser.add_argument("--pub-key", default="public_key", help="Public key file")
     gen_parser.add_argument("--priv-key", default="private_key", help="Private key file")
 
+    repl_parser = subparsers.add_parser("interactive", help="Interactive CLI mode")
+    repl_parser.add_argument("--pub-key", default="public_key", help="Public key file")
+    repl_parser.add_argument("--priv-key", default="private_key", help="Private key file")
+
     args = parser.parse_args()
+
+    if args.command is None:
+        run_interactive("public_key", "private_key")
+        return
+
+    if args.command == "interactive":
+        run_interactive(args.pub_key, args.priv_key)
+        return
 
     if args.command == "generate-keys":
         keys = OpenNexusClient.generate_keys()
@@ -996,7 +1146,7 @@ def main():
         getattr(args, "priv_key", "private_key"),
     )
     if not client:
-        print("Error: No keys found. Run 'generate-keys' first.")
+        print("Error: No keys found. Run 'generate-keys' first, or use interactive mode.")
         sys.exit(1)
 
     if args.command == "send":
