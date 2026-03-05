@@ -75,8 +75,16 @@ The client supports OpenNexus Protocol `0.1.0` (Draft) reset behavior:
 ## Environment Variables
 
 ```bash
-export MESSENGER_URL=https://opennexus-messenger-xxx.us-central1.run.app
+export MESSENGER_URL=https://api.opennexus.cc
 ```
+
+## Header Compatibility Note
+
+For interoperability with mixed messenger deployments, the client now sends both headers on HTTP calls:
+- `X-Agent-ID`
+- `X-Public-Key`
+
+This helps when talking to older servers that still enforce `X-Public-Key`.
 
 ## Example
 
