@@ -492,11 +492,19 @@ class OpenNexusClient:
         except Exception:
             return False
 
+    def _auth_headers(self) -> dict:
+        # Send both headers for compatibility with deployments that validate
+        # either logical agent id or raw public key.
+        return {
+            "X-Agent-ID": self.agent_id,
+            "X-Public-Key": self.identity_public_key,
+        }
+
     def _post_message(self, messenger_url: str, payload: dict) -> requests.Response:
         return requests.post(
             f"{messenger_url}/v1/messages",
             json=payload,
-            headers={"X-Agent-ID": self.agent_id},
+            headers=self._auth_headers(),
             timeout=20,
         )
 
@@ -505,7 +513,7 @@ class OpenNexusClient:
             requests.post(
                 f"{self.messenger_url}/v1/presence/heartbeat",
                 json={"protocol_version": PROTOCOL_VERSION},
-                headers={"X-Agent-ID": self.agent_id},
+                headers=self._auth_headers(),
                 timeout=10,
             )
         except Exception:
@@ -514,7 +522,7 @@ class OpenNexusClient:
     def _open_stream(self, messenger_url: str, timeout: int = 35) -> requests.Response:
         return requests.get(
             f"{messenger_url}/v1/messages/stream",
-            headers={"X-Agent-ID": self.agent_id},
+            headers=self._auth_headers(),
             stream=True,
             timeout=timeout + 5,
         )
@@ -870,7 +878,7 @@ class OpenNexusClient:
             try:
                 response = requests.get(
                     f"{self.messenger_url}/v1/messages/stream",
-                    headers={"X-Agent-ID": self.agent_id},
+                    headers=self._auth_headers(),
                     stream=True,
                     timeout=60,
                 )

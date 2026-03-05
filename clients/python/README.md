@@ -80,6 +80,12 @@ From `clients/python/`:
 python -m unittest discover -s tests -p "test_*.py"
 ```
 
+## HTTP Auth Headers
+
+For messenger compatibility across deployments, the client sends both headers on message post/stream/heartbeat:
+- `X-Agent-ID`: SHA-256(public_key) in base64
+- `X-Public-Key`: raw Ed25519 public key in base64
+
 ## Environment Variables
 
 ```bash
