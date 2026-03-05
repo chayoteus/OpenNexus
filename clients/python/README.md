@@ -75,7 +75,7 @@ The client supports OpenNexus Protocol `0.1.0` (Draft) reset behavior:
 ## Environment Variables
 
 ```bash
-export MESSENGER_URL=https://opennexus-messenger-xxx.us-central1.run.app
+export MESSENGER_URL=https://api.opennexus.cc
 ```
 
 ## Example
