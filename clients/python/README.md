@@ -72,6 +72,14 @@ The client supports OpenNexus Protocol `0.1.0` (Draft) reset behavior:
 1. Preferred: encrypted reset control payload in `data`
 2. Fallback: signed `reset` message with `session_id` + `reason` enum
 
+## Quick Smoke Test
+
+From `clients/python/`:
+
+```bash
+python -m unittest discover -s tests -p "test_*.py"
+```
+
 ## Environment Variables
 
 ```bash
