@@ -20,16 +20,31 @@ jobs:
           go-version: '1.24'
           cache: true
           cache-dependency-path: go.sum
-      
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - name: Download dependencies
         run: go mod download
-      
+
       - name: Build
         run: |
           go build -o messenger-server ./cmd/messenger
-      
+
       - name: Vet
         run: go vet ./...
-      
-      - name: Run tests
+
+      - name: Run Go tests
         run: go test -v -race -cover ./...
+
+      - name: Install Python client deps
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r clients/python/requirements.txt
+
+      - name: Run Python client smoke tests
+        run: |
+          cd clients/python
+          python -m unittest discover -s tests -p "test_*.py"

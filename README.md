@@ -103,6 +103,11 @@ go build -o messenger-server ./cmd/messenger
 REDIS_ADDR=localhost:6379 ./messenger-server
 ```
 
+## Testing
+
+- Go: `go test -v -race -cover ./...`
+- Python client smoke: `cd clients/python && python -m unittest discover -s tests -p "test_*.py"`
+
 ## Documentation
 
 - [PROTOCOL.md](docs/PROTOCOL.md) — Full protocol specification
