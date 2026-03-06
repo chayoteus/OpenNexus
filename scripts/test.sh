@@ -50,7 +50,13 @@ cleanup() {
   [[ -n "$RECV2_PID" ]] && kill "$RECV2_PID" 2>/dev/null || true
   [[ -n "$MS1_PID" ]] && kill "$MS1_PID" 2>/dev/null || true
   [[ -n "$MS2_PID" ]] && kill "$MS2_PID" 2>/dev/null || true
-  rm -f /tmp/t1.pub /tmp/t1.priv /tmp/t2.pub /tmp/t2.priv /tmp/t*.log
+  rm -f /tmp/t1.pub /tmp/t1.priv /tmp/t2.pub /tmp/t2.priv
+
+  if [[ "${KEEP_LOGS_ON_FAIL:-1}" == "1" && "$FAIL" -gt 0 ]]; then
+    echo "Preserving /tmp/t*.log for debugging because failures were detected."
+  else
+    rm -f /tmp/t*.log
+  fi
 }
 trap cleanup EXIT
 
@@ -150,9 +156,9 @@ echo "T2: ${T2:0:16} (session: session_keys_${T2_HEX}.json)"
 
 echo ""
 echo "=== Phase 1: T1 (messenger1) and T2 (messenger2) exchange messages ==="
-MESSENGER_URL="$MESSENGER_URL" python3 opennexus.py stream --pub-key /tmp/t1.pub --priv-key /tmp/t1.priv > /tmp/t1_phase1.log 2>&1 &
+PYTHONUNBUFFERED=1 MESSENGER_URL="$MESSENGER_URL" python3 opennexus.py stream --pub-key /tmp/t1.pub --priv-key /tmp/t1.priv > /tmp/t1_phase1.log 2>&1 &
 RECV1_PID=$!
-MESSENGER_URL="$MESSENGER_URL2" python3 opennexus.py stream --pub-key /tmp/t2.pub --priv-key /tmp/t2.priv > /tmp/t2_phase1.log 2>&1 &
+PYTHONUNBUFFERED=1 MESSENGER_URL="$MESSENGER_URL2" python3 opennexus.py stream --pub-key /tmp/t2.pub --priv-key /tmp/t2.priv > /tmp/t2_phase1.log 2>&1 &
 RECV2_PID=$!
 sleep 3
 
@@ -177,7 +183,7 @@ kill "$RECV2_PID" 2>/dev/null || true
 sleep 1
 rm -f "session_keys_${T2_HEX}.json"
 
-MESSENGER_URL="$MESSENGER_URL2" python3 opennexus.py stream --pub-key /tmp/t2.pub --priv-key /tmp/t2.priv > /tmp/t2_restart1.log 2>&1 &
+PYTHONUNBUFFERED=1 MESSENGER_URL="$MESSENGER_URL2" python3 opennexus.py stream --pub-key /tmp/t2.pub --priv-key /tmp/t2.priv > /tmp/t2_restart1.log 2>&1 &
 RECV2_PID=$!
 sleep 3
 
@@ -210,7 +216,7 @@ kill "$RECV2_PID" 2>/dev/null || true
 sleep 1
 rm -f "session_keys_${T2_HEX}.json"
 
-MESSENGER_URL="$MESSENGER_URL2" python3 opennexus.py stream --pub-key /tmp/t2.pub --priv-key /tmp/t2.priv > /tmp/t2_restart2.log 2>&1 &
+PYTHONUNBUFFERED=1 MESSENGER_URL="$MESSENGER_URL2" python3 opennexus.py stream --pub-key /tmp/t2.pub --priv-key /tmp/t2.priv > /tmp/t2_restart2.log 2>&1 &
 RECV2_PID=$!
 sleep 3
 
