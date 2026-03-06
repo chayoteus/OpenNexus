@@ -30,6 +30,7 @@ go.work
 __pycache__/
 *.pyc
 venv/
+.venv/
 *.egg-info/
 .env
 
