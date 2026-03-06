@@ -346,6 +346,26 @@ func TestSendMessageMissingHeader(t *testing.T) {
 	}
 }
 
+func TestSendMessageRejectsLegacyPublicKeyHeader(t *testing.T) {
+	r, _, _ := setupRouter()
+	body := `{"protocol_version":"0.1.0","type":"data","sender_id":"s","receiver_id":"r","session_id":"sid","counter":0,"ciphertext":"ct"}`
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/v1/messages", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Public-Key", "s")
+	r.ServeHTTP(w, req)
+
+	if w.Code != 400 {
+		t.Errorf("expected 400, got %d", w.Code)
+	}
+
+	var resp map[string]string
+	json.Unmarshal(w.Body.Bytes(), &resp)
+	if resp["error"] != "X-Agent-ID header is required" {
+		t.Errorf("unexpected error: %s", resp["error"])
+	}
+}
+
 func TestSendMessageInvalidJSON(t *testing.T) {
 	r, _, _ := setupRouter()
 	w := httptest.NewRecorder()
@@ -528,6 +548,24 @@ func TestStreamMessagesMissingHeader(t *testing.T) {
 	r.ServeHTTP(w, req)
 	if w.Code != 400 {
 		t.Errorf("expected 400, got %d", w.Code)
+	}
+}
+
+func TestStreamMessagesRejectsLegacyPublicKeyHeader(t *testing.T) {
+	r, _, _ := setupRouter()
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/v1/messages/stream", nil)
+	req.Header.Set("X-Public-Key", "legacy")
+	r.ServeHTTP(w, req)
+
+	if w.Code != 400 {
+		t.Errorf("expected 400, got %d", w.Code)
+	}
+
+	var resp map[string]string
+	json.Unmarshal(w.Body.Bytes(), &resp)
+	if resp["error"] != "X-Agent-ID header is required" {
+		t.Errorf("unexpected error: %s", resp["error"])
 	}
 }
 

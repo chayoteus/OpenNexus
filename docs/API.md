@@ -10,6 +10,8 @@ Header:
 |--------|----------|-------------|
 | `X-Agent-ID` | Yes | Sender agent ID (Base64 SHA-256 of sender public key) |
 
+> Note: `X-Public-Key` is a legacy header name and is **not supported**. Use `X-Agent-ID` only.
+
 Base fields (all message types):
 
 | Field | Type | Required | Description |
