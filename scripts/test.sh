@@ -6,6 +6,33 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 MESSENGER_URL="${MESSENGER_URL:-http://127.0.0.1:8080}"
 MESSENGER_URL2="${MESSENGER_URL2:-http://127.0.0.1:8081}"
 START_LOCAL_SERVERS="${START_LOCAL_SERVERS:-1}"
+
+port_in_use() {
+  local port="$1"
+  ss -ltn "( sport = :$port )" | grep -q ":$port"
+}
+
+next_free_port() {
+  local port="$1"
+  while port_in_use "$port"; do
+    port=$((port + 1))
+  done
+  echo "$port"
+}
+
+if [[ "$START_LOCAL_SERVERS" == "1" ]]; then
+  PORT1="${MESSENGER_URL##*:}"
+  PORT2="${MESSENGER_URL2##*:}"
+
+  if port_in_use "$PORT1" || port_in_use "$PORT2"; then
+    PORT1=$(next_free_port 18080)
+    PORT2=$(next_free_port $((PORT1 + 1)))
+    MESSENGER_URL="http://127.0.0.1:${PORT1}"
+    MESSENGER_URL2="http://127.0.0.1:${PORT2}"
+    echo "Default messenger ports occupied; switched to $MESSENGER_URL and $MESSENGER_URL2"
+  fi
+fi
+
 export MESSENGER_URL MESSENGER_URL2
 
 echo "T1 messenger: $MESSENGER_URL"
