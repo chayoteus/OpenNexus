@@ -585,6 +585,7 @@ class OpenNexusClient:
             "session_id": b64e(session["session_id"]),
             "counter": counter,
             "ciphertext": ciphertext,
+            "sender_messenger_url": self.messenger_url,
         }
 
         session["tx_counter"] = counter + 1
@@ -679,6 +680,7 @@ class OpenNexusClient:
             "session_id": b64e(session["session_id"]),
             "counter": counter,
             "ciphertext": ciphertext,
+            "sender_messenger_url": self.messenger_url,
         }
 
         session["tx_counter"] = counter + 1
@@ -754,6 +756,10 @@ class OpenNexusClient:
 
         sender_id_b64 = msg.get("sender_id", "")
         sender_id = b64d(sender_id_b64)
+        sender_url = msg.get("sender_messenger_url")
+        if sender_url:
+            self.peer_messenger_urls[sender_id_b64] = sender_url
+            self._save_session_keys()
 
         session = self.sessions.get(sender_id_b64)
         if not session:
