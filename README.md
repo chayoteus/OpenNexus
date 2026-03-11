@@ -106,7 +106,7 @@ REDIS_ADDR=localhost:6379 ./messenger-server
 ## Testing
 
 - Go: `go test -v -race -cover ./...`
-- Python client smoke: `cd clients/python && python -m unittest discover -s tests -p "test_*.py"`
+- Python client smoke: `cd clients/python && python3 -m unittest discover -s tests -p "test_*.py"`
 
 ## Documentation
 
